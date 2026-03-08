@@ -100,7 +100,7 @@ export default function ManagePage() {
                     <div>
                         <label className="block text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-2">URL</label>
                         <input
-                            type="url"
+                            type="text"
                             value={url}
                             onChange={e => setUrl(e.target.value)}
                             placeholder="example.com"
