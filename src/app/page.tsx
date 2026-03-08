@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { QRCodeSVG } from 'qrcode.react';
+import { QRCodeCanvas } from 'qrcode.react';
 import { Loader2, Monitor, Link as LinkIcon, ExternalLink } from 'lucide-react';
 
 interface Link {
@@ -126,7 +126,7 @@ export default function TvHome() {
 
         {qrToken && pairUrl ? (
           <div className="bg-white p-4 rounded-3xl shadow-xl shadow-white/5 mb-6 ring-4 ring-neutral-800">
-            <QRCodeSVG value={pairUrl} size={220} />
+            <QRCodeCanvas value={pairUrl} size={220} />
           </div>
         ) : (
           <div className="w-[252px] h-[252px] bg-neutral-800 rounded-3xl animate-pulse mb-6" />
