@@ -3,8 +3,8 @@ import "./globals.css";
 
 
 export const metadata: Metadata = {
-  title: "My Easy Share",
-  description: "Share everthing to your TV/devices",
+  title: "Welcome to Easy Share",
+  description: "Share everthing to your TV/devices.",
 };
 
 export default function RootLayout({
