@@ -170,8 +170,6 @@ export default function TvHome() {
               <a
                 key={link.id}
                 href={link.url}
-                target="_blank"
-                rel="noreferrer"
                 className="group block p-6 bg-neutral-900 rounded-2xl hover:bg-neutral-800 transition-all hover:-translate-y-1 hover:shadow-2xl hover:shadow-emerald-500/5 border border-neutral-800 hover:border-emerald-500/30"
               >
                 <div className="flex justify-between items-start mb-5">
