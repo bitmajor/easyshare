@@ -18,6 +18,7 @@ export default function ManagePage() {
     const [title, setTitle] = useState('');
     const [expiryMinutes, setExpiryMinutes] = useState('5');
     const [loading, setLoading] = useState(false);
+    const [deviceName, setDeviceName] = useState<string>('Connected to TV');
     const router = useRouter();
 
     const fetchLinks = async () => {
@@ -25,6 +26,7 @@ export default function ManagePage() {
         if (res.ok) {
             const data = await res.json();
             setLinks(data.links);
+            if (data.deviceName) setDeviceName(`Connected to ${data.deviceName}`);
         } else if (res.status === 401) {
             router.push('/');
         }
@@ -78,9 +80,9 @@ export default function ManagePage() {
             <header className="py-6 border-b border-neutral-800 mb-6 flex items-center justify-between">
                 <div>
                     <h1 className="text-2xl font-bold text-white tracking-tight">Active Session</h1>
-                    <p className="text-emerald-400 text-xs font-medium mt-1 flex items-center gap-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                        Connected to TV
+                    <p className="text-emerald-400 text-xs font-medium mt-1 flex items-center gap-1.5 truncate max-w-xs">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+                        {deviceName}
                     </p>
                 </div>
                 <div className="bg-neutral-900 border border-neutral-800 p-2.5 rounded-xl text-neutral-400 shadow-sm">

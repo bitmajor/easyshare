@@ -1,17 +1,5 @@
-import { Pool } from '@neondatabase/serverless';
+import { neon } from '@neondatabase/serverless';
 
-// Singleton pool instance
-const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-});
-
-export async function query(text: string, params?: any[]) {
-    const client = await pool.connect();
-    try {
-        return await client.query(text, params);
-    } finally {
-        client.release();
-    }
-}
-
-export default pool;
+// Use direct neon connection over HTTP for serverless scalability (no pool required)
+export const query = neon(process.env.DATABASE_URL!);
+export default query;

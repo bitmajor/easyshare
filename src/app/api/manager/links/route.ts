@@ -1,69 +1,70 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import pool from '@/lib/db';
+import { query } from '@/lib/db';
 import { hashToken } from '@/lib/auth';
 import { computeExpiry } from '@/lib/time';
 
 export const revalidate = 0;
 
-async function getDeviceIdFromSession() {
+async function getDeviceFromSession() {
     const cookieStore = await cookies();
     const token = cookieStore.get('manager_token')?.value;
     if (!token) return null;
 
     const sessionHash = hashToken(token);
-    const client = await pool.connect();
     try {
-        const res = await client.query(
-            'SELECT device_id FROM manager_sessions WHERE token_hash = $1 AND expires_at > NOW()',
-            [sessionHash]
-        );
-        if (res.rowCount === 0) return null;
-        return res.rows[0].device_id;
-    } finally {
-        client.release();
+        const res = await query`
+            SELECT m.device_id, d.name 
+            FROM manager_sessions m
+            JOIN devices d ON m.device_id = d.id
+            WHERE m.token_hash = ${sessionHash} AND m.expires_at > (NOW() AT TIME ZONE 'UTC')
+        `;
+        if (res.length === 0) return null;
+        return { deviceId: res[0].device_id, deviceName: res[0].name };
+    } catch (err) {
+        return null;
     }
 }
 
 export async function GET() {
-    const deviceId = await getDeviceIdFromSession();
-    if (!deviceId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const device = await getDeviceFromSession();
+    if (!device) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const { deviceId, deviceName } = device;
 
-    const client = await pool.connect();
     try {
-        const linksRes = await client.query(`
+        const linksRes = await query`
       SELECT id, url, title, expires_at as "expiresAt", created_at as "createdAt"
       FROM links 
-      WHERE device_id = $1 
+      WHERE device_id = ${deviceId} 
         AND is_active = TRUE
       ORDER BY created_at DESC
-    `, [deviceId]);
+    `;
 
-        return NextResponse.json({ success: true, links: linksRes.rows });
-    } finally {
-        client.release();
+        return NextResponse.json({ success: true, links: linksRes, deviceName });
+    } catch (err) {
+        return NextResponse.json({ error: 'Database error' }, { status: 500 });
     }
 }
 
 export async function POST(req: Request) {
-    const deviceId = await getDeviceIdFromSession();
-    if (!deviceId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const device = await getDeviceFromSession();
+    if (!device) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const { deviceId } = device;
 
     try {
         const { url, title, expiryMinutes } = await req.json();
         const expiresAt = computeExpiry(expiryMinutes);
 
-        const client = await pool.connect();
         try {
-            const inserted = await client.query(`
+            const inserted = await query`
         INSERT INTO links (device_id, url, title, expires_at)
-        VALUES ($1, $2, $3, $4)
+        VALUES (${deviceId}, ${url}, ${title}, ${expiresAt})
         RETURNING id, url, title, expires_at as "expiresAt", created_at as "createdAt"
-      `, [deviceId, url, title, expiresAt]);
+      `;
 
-            return NextResponse.json({ success: true, link: inserted.rows[0] });
-        } finally {
-            client.release();
+            return NextResponse.json({ success: true, link: inserted[0] });
+        } catch (dbErr) {
+            return NextResponse.json({ error: 'Database error' }, { status: 500 });
         }
     } catch (err) {
         return NextResponse.json({ error: 'Invalid input' }, { status: 400 });

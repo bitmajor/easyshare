@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import pool from '@/lib/db';
+import { query } from '@/lib/db';
 import { hashToken } from '@/lib/auth';
 
 async function getDeviceIdFromSession() {
@@ -9,16 +9,12 @@ async function getDeviceIdFromSession() {
     if (!token) return null;
 
     const sessionHash = hashToken(token);
-    const client = await pool.connect();
     try {
-        const res = await client.query(
-            'SELECT device_id FROM manager_sessions WHERE token_hash = $1 AND expires_at > NOW()',
-            [sessionHash]
-        );
-        if (res.rowCount === 0) return null;
-        return res.rows[0].device_id;
-    } finally {
-        client.release();
+        const res = await query`SELECT device_id FROM manager_sessions WHERE token_hash = ${sessionHash} AND expires_at > (NOW() AT TIME ZONE 'UTC')`;
+        if (res.length === 0) return null;
+        return res[0].device_id;
+    } catch (err) {
+        return null;
     }
 }
 
@@ -31,14 +27,10 @@ export async function DELETE(
 
     const { id } = await params;
 
-    const client = await pool.connect();
     try {
-        const res = await client.query(
-            'UPDATE links SET is_active = FALSE WHERE id = $1 AND device_id = $2 RETURNING id',
-            [id, deviceId]
-        );
+        const res = await query`UPDATE links SET is_active = FALSE WHERE id = ${id} AND device_id = ${deviceId} RETURNING id`;
 
-        if (res.rowCount === 0) {
+        if (res.length === 0) {
             return NextResponse.json({ error: 'Not found or unauthorized' }, { status: 404 });
         }
 
@@ -46,7 +38,5 @@ export async function DELETE(
     } catch (err) {
         console.error('Delete link error:', err);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
-    } finally {
-        client.release();
     }
 }

@@ -1,19 +1,23 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import pool from '@/lib/db';
+import { query } from '@/lib/db';
 import { generateToken, hashToken } from '@/lib/auth';
+
+import { uniqueNamesGenerator, adjectives, animals } from 'unique-names-generator';
 
 export async function POST() {
     const token = generateToken(32);
     const hashed = hashToken(token);
 
-    const client = await pool.connect();
+    const deviceName = uniqueNamesGenerator({
+        dictionaries: [adjectives, animals],
+        separator: ' ',
+        style: 'capital',
+    });
+
     try {
-        const res = await client.query(
-            'INSERT INTO devices (token_hash, name) VALUES ($1, $2) RETURNING id',
-            [hashed, 'TV Device']
-        );
-        const deviceId = res.rows[0].id;
+        const res = await query`INSERT INTO devices (token_hash, name) VALUES (${hashed}, ${deviceName}) RETURNING id`;
+        const deviceId = res[0].id;
 
         // Set a very long-lived cookie for the TV
         const cookieStore = await cookies();
@@ -29,7 +33,5 @@ export async function POST() {
     } catch (err) {
         console.error('TV Registration error:', err);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
-    } finally {
-        client.release();
     }
 }

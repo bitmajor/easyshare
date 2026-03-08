@@ -19,8 +19,12 @@ export default function TvHome() {
   const [links, setLinks] = useState<Link[]>([]);
   const [qrSecondsLeft, setQrSecondsLeft] = useState(0);
 
+  const [deviceName, setDeviceName] = useState<string>('TV Device');
+
   const qrRef = useRef<Date | null>(null);
-  qrRef.current = qrExpiry;
+  useEffect(() => {
+    qrRef.current = qrExpiry;
+  }, [qrExpiry]);
 
   // Registration & QR
   useEffect(() => {
@@ -30,6 +34,9 @@ export default function TvHome() {
       if (linksRes.status === 401) {
         const regRes = await fetch('/api/tv/register', { method: 'POST' });
         if (!regRes.ok) return;
+      } else if (linksRes.ok) {
+        const data = await linksRes.json();
+        if (data.deviceName) setDeviceName(data.deviceName);
       }
       setDeviceReady(true);
       fetchQr();
@@ -85,6 +92,7 @@ export default function TvHome() {
       if (res.ok) {
         const data = await res.json();
         setLinks(data.links);
+        if (data.deviceName) setDeviceName(data.deviceName);
       }
     };
 
@@ -111,7 +119,7 @@ export default function TvHome() {
         <div className="bg-blue-500/10 p-5 rounded-2xl mb-6 ring-1 ring-blue-500/20">
           <Monitor className="w-10 h-10 text-blue-400" />
         </div>
-        <h2 className="text-2xl font-bold mb-2">Connect Device</h2>
+        <h2 className="text-2xl font-bold mb-2 break-all text-center">{deviceName}</h2>
         <p className="text-neutral-400 text-center mb-8 text-sm">
           Scan to manage links on this display.
         </p>

@@ -12,5 +12,6 @@ export function generateToken(bytes = 16): string {
  * Hash a token for storage in the database.
  */
 export function hashToken(token: string): string {
-    return crypto.createHash('sha256').update(token).digest('hex');
+    const salt = process.env.TOKEN_SALT || '';
+    return crypto.createHash('sha256').update(token + salt).digest('hex');
 }
